@@ -11,6 +11,11 @@ import { createWallet, persistWalletState, unshieldedToken, type WalletContext }
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { WebSocket } from 'ws';
 import * as Rx from 'rxjs';
+import { randomBytes } from 'node:crypto';
+import {
+  createCompiledContract,
+  createVeilAidPrivateState,
+} from './contract';
 
 // Midnight SDK imports
 import { deployContract } from '@midnight-ntwrk/midnight-js-contracts';
@@ -23,9 +28,8 @@ import { CompiledContract } from '@midnight-ntwrk/midnight-js-protocol/compact-j
 // @ts-expect-error Required for wallet sync
 globalThis.WebSocket = WebSocket;
 
-// Identifier under which this contract's private state is stored. The
-// hello-world contract has no witnesses, so its private state is empty ({}).
-const PRIVATE_STATE_ID = 'helloWorldPrivateState';
+// Identifier under which the encrypted eligibility secret is stored.
+const PRIVATE_STATE_ID = 'veilAidPrivateState';
 
 // Upper bound on the DUST wait. A healthy local devnet produces DUST within
 // seconds of registration; anything approaching this means the node, the
@@ -77,7 +81,7 @@ async function waitForProofServer(maxAttempts = 60, delayMs = 2000): Promise<boo
 // ─── Compiled contract loading ─────────────────────────────────────────────────
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const zkConfigPath = path.resolve(__dirname, '..', 'contracts', 'managed', 'hello-world');
+const zkConfigPath = path.resolve(__dirname, '..', 'contracts', 'managed', 'veil-aid');
 const contractPath = path.join(zkConfigPath, 'contract', 'index.js');
 
 if (!fs.existsSync(contractPath)) {
@@ -85,12 +89,9 @@ if (!fs.existsSync(contractPath)) {
   process.exit(1);
 }
 
-const HelloWorld = await import(pathToFileURL(contractPath).href);
+await import(pathToFileURL(contractPath).href);
 
-const compiledContract = CompiledContract.make('hello-world', HelloWorld.Contract).pipe(
-  CompiledContract.withVacantWitnesses,
-  CompiledContract.withCompiledFileAssets(zkConfigPath),
-);
+const compiledContract = createCompiledContract(zkConfigPath);
 
 // ─── Providers ─────────────────────────────────────────────────────────────────
 
@@ -123,7 +124,7 @@ async function createProviders(walletCtx: WalletContext) {
 
   return {
     privateStateProvider: levelPrivateStateProvider({
-      privateStateStoreName: 'hello-world-state',
+      privateStateStoreName: 'veil-aid-state',
       accountId,
       privateStoragePasswordProvider: () => privateStatePassword,
     }),
@@ -302,6 +303,11 @@ async function main() {
 
   console.log('  Deploying contract...\n');
 
+  // The secret remains in the encrypted private-state provider. The Compact
+  // constructor calls its witness and publishes only a derived commitment.
+  const eligibilitySecret = randomBytes(32);
+  const initialPrivateState = createVeilAidPrivateState(eligibilitySecret);
+
   // Fallback timing. The 6s pre-pause above handles the common case; this
   // loop covers genuine outliers (slow blocks, proof-server worker-pool
   // settling). Earlier 2s retries caused CI flakes where attempt 2's /prove
@@ -323,7 +329,7 @@ async function main() {
         compiledContract: compiledContract as any,
         args: [],
         privateStateId: PRIVATE_STATE_ID,
-        initialPrivateState: {},
+        initialPrivateState,
       });
       break;
     } catch (err: any) {
@@ -383,6 +389,18 @@ async function main() {
   if (!deployed) throw new Error('Deployment failed after all retries');
 
   const contractAddress = deployed.deployTxData.public.contractAddress;
+
+  // Persist explicitly under the finalized contract address. This mirrors the
+  // provider pattern used by Midnight's official examples and ensures a later
+  // CLI process recovers the same witness secret.
+  providers.privateStateProvider.setContractAddress(contractAddress);
+  await providers.privateStateProvider.set(PRIVATE_STATE_ID, initialPrivateState);
+  const storedPrivateState =
+    await providers.privateStateProvider.get(PRIVATE_STATE_ID);
+  if (!storedPrivateState) {
+    throw new Error('Encrypted eligibility private state was not persisted');
+  }
+
   console.log('  ✅ Contract deployed successfully!\n');
   console.log(`  Contract Address: ${contractAddress}\n`);
 

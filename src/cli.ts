@@ -7,7 +7,11 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { WebSocket } from 'ws';
-import { Buffer } from 'buffer';
+import {
+  createCompiledContract,
+  emptyVeilAidPrivateState,
+  ledger,
+} from './contract';
 
 // Midnight SDK imports
 import { findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
@@ -23,9 +27,8 @@ import { CompiledContract } from '@midnight-ntwrk/midnight-js-protocol/compact-j
 // @ts-expect-error Required for wallet sync
 globalThis.WebSocket = WebSocket;
 
-// Must match the privateStateId used at deploy time so the CLI reconnects to
-// the same private state. The hello-world contract has no witnesses (empty state).
-const PRIVATE_STATE_ID = 'helloWorldPrivateState';
+// Must match the privateStateId used at deploy time.
+const PRIVATE_STATE_ID = 'veilAidPrivateState';
 
 const { network, config: networkConfig } = resolveNetwork();
 const WALLET = getOrCreateWallet(network);
@@ -36,7 +39,7 @@ const SEED = WALLET.seed;
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const zkConfigPath = path.resolve(__dirname, '..', 'contracts', 'managed', 'hello-world');
+const zkConfigPath = path.resolve(__dirname, '..', 'contracts', 'managed', 'veil-aid');
 
 // Load compiled contract
 const contractPath = path.join(zkConfigPath, 'contract', 'index.js');
@@ -47,12 +50,9 @@ if (!fs.existsSync(contractPath)) {
   process.exit(1);
 }
 
-const HelloWorld = await import(pathToFileURL(contractPath).href);
+await import(pathToFileURL(contractPath).href);
 
-const compiledContract = CompiledContract.make('hello-world', HelloWorld.Contract).pipe(
-  CompiledContract.withVacantWitnesses,
-  CompiledContract.withCompiledFileAssets(zkConfigPath),
-);
+const compiledContract = createCompiledContract(zkConfigPath);
 
 // ─── Providers ─────────────────────────────────────────────────────────────────
 
@@ -85,7 +85,7 @@ async function createProviders(walletCtx: WalletContext) {
 
   return {
     privateStateProvider: levelPrivateStateProvider({
-      privateStateStoreName: 'hello-world-state',
+      privateStateStoreName: 'veil-aid-state',
       accountId,
       privateStoragePasswordProvider: () => privateStatePassword,
     }),
@@ -156,12 +156,20 @@ async function main() {
     // Setup providers and connect to contract
     console.log('  Connecting to contract...');
     const providers = await createProviders(walletCtx);
+    providers.privateStateProvider.setContractAddress(deployment.address);
+    const storedPrivateState =
+      await providers.privateStateProvider.get(PRIVATE_STATE_ID);
+    if (!storedPrivateState) {
+      throw new Error(
+        'Eligibility private state is missing. Restore the encrypted state or redeploy the campaign.',
+      );
+    }
 
     const deployed: any = await findDeployedContract(providers, {
       compiledContract: compiledContract as any,
       contractAddress: deployment.address,
       privateStateId: PRIVATE_STATE_ID,
-      initialPrivateState: {},
+      initialPrivateState: storedPrivateState,
     });
 
     console.log('  ✅ Connected!\n');
@@ -170,8 +178,8 @@ async function main() {
     let running = true;
     while (running) {
       console.log('─── Menu ───────────────────────────────────────────────────────');
-      console.log('  1. Store a message');
-      console.log('  2. Read current message');
+      console.log('  1. Claim aid with private eligibility proof');
+      console.log('  2. Read public campaign statistics');
       console.log('  3. Check wallet balance');
       console.log('  4. Exit\n');
 
@@ -179,29 +187,37 @@ async function main() {
 
       switch (choice.trim()) {
         case '1': {
-          const message = await rl.question('  Enter your message: ');
           console.log('\n  Submitting transaction (this may take 30-60 seconds)...');
           try {
-            const tx = await deployed.callTx.storeMessage(message);
-            console.log(`\n  ✅ Message stored: "${message}"`);
+            const tx = await deployed.callTx.claimAid();
+            console.log('\n  ✅ Private eligibility verified and claim recorded.');
             console.log(`  Transaction ID: ${tx.public.txId}`);
             console.log(`  Block height: ${tx.public.blockHeight}\n`);
           } catch (error) {
             console.error('\n  ❌ Failed:', error instanceof Error ? error.message : error);
+            if (error instanceof Error && error.stack) {
+              console.error(error.stack);
+            }
           }
           break;
         }
 
         case '2': {
-          console.log('\n  Reading message from blockchain...');
+          console.log('\n  Reading public campaign state...');
           try {
             const contractState = await providers.publicDataProvider.queryContractState(deployment.address);
             if (contractState) {
-              const ledgerState = HelloWorld.ledger(contractState.data);
-              const message = Buffer.from(ledgerState.message).toString();
-              console.log(`\n  📋 Current message: "${message}"\n`);
+              const ledgerState = ledger(contractState.data);
+              console.log(`\n  Successful claims: ${ledgerState.successfulClaims}`);
+              console.log(`  Claim recorded:    ${ledgerState.claimRecorded}`);
+              console.log(
+                `  Last claim marker: ${Buffer.from(ledgerState.lastClaimNullifier).toString('hex')}`,
+              );
+              console.log(
+                `  Eligibility root:  ${Buffer.from(ledgerState.eligibilityCommitment).toString('hex')}\n`,
+              );
             } else {
-              console.log('\n  📋 No message found (contract state empty)\n');
+              console.log('\n  No campaign state found.\n');
             }
           } catch (error) {
             console.error('\n  ❌ Failed:', error instanceof Error ? error.message : error);
