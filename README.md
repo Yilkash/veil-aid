@@ -1,6 +1,6 @@
 # VeilAid
 
-**Prove you qualify. Claim once. Stay private.**
+> Prove you qualify. Claim once. Stay private.
 
 VeilAid is a privacy-first aid distribution protocol built on Midnight Network.
 It lets a recipient prove possession of an eligibility secret without publishing
@@ -8,16 +8,23 @@ that secret. The Level 1 prototype deploys one private eligibility commitment,
 accepts one zero-knowledge claim, publishes only a domain-separated claim
 marker, and rejects a second claim.
 
-## Product idea
+## What This Does
 
 Aid programs often force recipients to expose names, identity documents, health
 conditions, or financial hardship to several intermediaries. VeilAid gives an
 organizer a public, auditable claim count while recipients prove eligibility
-locally with private data. The Level 1 contract demonstrates the core privacy
-boundary with one eligible recipient. Later levels will replace the single
-commitment with an eligibility Merkle root and campaign-scoped nullifier set so
-many recipients can claim once without revealing which approved record belongs
-to them.
+locally with private data.
+
+## Initial Idea
+
+VeilAid is a privacy-preserving platform for distributing aid, scholarships,
+grants, vouchers, and community benefits. An organization publishes a
+cryptographic commitment to approved eligibility. A recipient proves privately
+that they hold the matching secret, receives a claim receipt, and cannot claim
+twice. The Level 1 contract demonstrates this privacy boundary with one eligible
+recipient. Later levels will replace the single commitment with an eligibility
+Merkle root and campaign-scoped nullifier set so many recipients can claim
+without revealing which approved record belongs to them.
 
 ## Level 1 behavior
 
@@ -76,7 +83,14 @@ through the private witness and checks it against the public commitment.
 Successful execution reveals only a derived nullifier and updates auditable
 public claim state.
 
-## Public state and private witness
+## Privacy Model
+
+- **Public:** eligibility commitment, successful claim count, one-time claim
+  flag, and derived claim nullifier.
+- **Private:** the recipient's 32-byte eligibility secret held by the encrypted
+  private-state provider.
+- **Proved without revealing:** the private secret hashes to the campaign's
+  public eligibility commitment.
 
 | Data | Location | Reason |
 |---|---|---|
@@ -91,12 +105,20 @@ The disclosure boundary is visible in
 never disclosed, returned, logged, or placed in ledger state. The circuit
 discloses only outputs of domain-separated persistent hashes.
 
-## Requirements
+## Tech Stack
+
+- Midnight Preview network
+- Compact language and compiler 0.31.1
+- Midnight.js 4.1.1 and Compact Runtime 0.16.0
+- Node.js 22 or newer
+- Docker, Compose, and proof server 8.1.0
+
+## Prerequisites
 
 - Node.js 22 or newer
-- Docker with Compose v2
-- Compact devtools 0.5.2
-- Compact compiler 0.31.1
+- Docker with Compose v2 and a running Docker engine
+- Compact devtools with compiler 0.31.1
+- Git and npm
 
 Verify the local tools:
 
@@ -111,13 +133,18 @@ compact compile --version
 Install Compact using Midnight's
 [official installation guide](https://docs.midnight.network/getting-started/installation).
 
-## Install and test
+## Setup
 
 ```bash
 git clone git@Yilkash:Yilkash/veil-aid.git
 cd veil-aid
 npm install
 npm dedupe
+```
+
+## Run Tests
+
+```bash
 npm test
 npm run build
 ```
@@ -193,15 +220,21 @@ Never commit `.midnight-state.json`, `.midnight-wallet-state/`, or
 The local address is development evidence. The Rise In submission must use the
 Preview or Preprod address produced by the public-network deployment.
 
-## Preview deployment
+## Contract Address
 
 | Network | Contract address | Status |
 |---|---|---|
 | Preview | `f19931af3c381275ef72c4e6a28e50613b6f55139387d280744b38753376579d` | Deployed and verified by `npm run test:e2e` |
+| Preprod | Not deployed | Preview satisfies the Level 1 public deployment requirement |
 
 The Preview wallet synchronized with a faucet-funded balance, registered NIGHT
 for DUST generation, deployed the contract, and passed the indexed state
 read-back check on September 8, 2026.
+
+## Screenshots
+
+- [Compact compile output](docs/evidence/01-compact-compile.png)
+- [Preview contract address and end-to-end verification](docs/evidence/02-preview-contract-address.png)
 
 ## Level 1 submission checklist
 
