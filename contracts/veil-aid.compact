@@ -1,0 +1,51 @@
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+// VeilAid Level 1: prove possession of a private eligibility secret while
+// revealing only a commitment and a one-use claim nullifier.
+
+export ledger eligibilityCommitment: Bytes<32>;
+export ledger successfulClaims: Counter;
+export ledger lastClaimNullifier: Bytes<32>;
+export ledger claimRecorded: Boolean;
+
+// This value is supplied by the DApp's encrypted local private state. It is
+// never written to the public ledger or returned by a circuit.
+witness eligibilitySecret(): Bytes<32>;
+
+constructor() {
+  const secret = eligibilitySecret();
+  eligibilityCommitment = disclose(deriveEligibilityCommitment(secret));
+}
+
+export pure circuit deriveEligibilityCommitment(secret: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([
+    pad(32, "veilaid:eligibility:v1"),
+    secret
+  ]);
+}
+
+export pure circuit deriveClaimNullifier(secret: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([
+    pad(32, "veilaid:claim:v1"),
+    secret
+  ]);
+}
+
+export circuit claimAid(): Bytes<32> {
+  const secret = eligibilitySecret();
+  const candidateCommitment = disclose(deriveEligibilityCommitment(secret));
+  assert(
+    candidateCommitment == eligibilityCommitment,
+    "The private eligibility secret does not match this campaign"
+  );
+
+  const nullifier = disclose(deriveClaimNullifier(secret));
+  assert(!claimRecorded, "This campaign eligibility has already claimed");
+
+  lastClaimNullifier = nullifier;
+  claimRecorded = true;
+  successfulClaims.increment(1);
+  return nullifier;
+}
