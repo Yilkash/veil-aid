@@ -32,6 +32,50 @@ The Compact contract:
 7. Records a public claim counter, one-time flag, and derived claim marker.
 8. Rejects another claim after the one-time eligibility has been used.
 
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph DEVICE["Recipient device — private"]
+        USER["Eligible recipient"]
+        DAPP["VeilAid DApp"]
+        STORE["Encrypted private-state provider<br/>eligibility secret"]
+        WITNESS["eligibilitySecret() witness"]
+
+        USER --> DAPP
+        DAPP --> STORE
+        STORE --> WITNESS
+    end
+
+    subgraph PROOF["Midnight zero-knowledge execution"]
+        CIRCUIT["claimAid circuit"]
+        CHECK{"Private commitment<br/>matches public commitment?"}
+        NULLIFIER["Derive domain-separated<br/>claim nullifier"]
+
+        CIRCUIT --> CHECK
+        CHECK -->|yes| NULLIFIER
+        CHECK -->|no| REJECT["Reject claim"]
+    end
+
+    subgraph LEDGER["Midnight public ledger"]
+        COMMITMENT["Eligibility commitment"]
+        FLAG["Claim recorded flag"]
+        COUNT["Successful claim count"]
+        MARKER["Last claim nullifier"]
+    end
+
+    WITNESS -->|"private input — never disclosed"| CIRCUIT
+    COMMITMENT -->|"public reference"| CHECK
+    NULLIFIER -->|"disclose derived hash only"| MARKER
+    NULLIFIER --> FLAG
+    NULLIFIER --> COUNT
+```
+
+The raw eligibility secret stays on the recipient's device. The proof reads it
+through the private witness and checks it against the public commitment.
+Successful execution reveals only a derived nullifier and updates auditable
+public claim state.
+
 ## Public state and private witness
 
 | Data | Location | Reason |
