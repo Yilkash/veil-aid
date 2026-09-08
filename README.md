@@ -1,212 +1,191 @@
-# veil-aid
+# VeilAid
 
-A Midnight Network smart contract scaffolded with create-mn-app.
+**Prove you qualify. Claim once. Stay private.**
 
-## Quick start
+VeilAid is a privacy-first aid distribution protocol built on Midnight Network.
+It lets a recipient prove possession of an eligibility secret without publishing
+that secret. The Level 1 prototype deploys one private eligibility commitment,
+accepts one zero-knowledge claim, publishes only a domain-separated claim
+marker, and rejects a second claim.
 
-Requirements: Node 22, Docker (with Compose v2), and the Compact compiler at the version pinned in `.compact-version` at the create-mn-app repo root (the version this project was scaffolded against).
+## Product idea
 
-> **On Windows:** the npm scripts in this project run natively (PowerShell or cmd.exe), but the Compact compiler publishes no native Windows binary — so `npm run compile`, and `npm run setup` which calls it, need to run inside WSL. See Midnight's [installation docs](https://docs.midnight.network/getting-started/installation).
+Aid programs often force recipients to expose names, identity documents, health
+conditions, or financial hardship to several intermediaries. VeilAid gives an
+organizer a public, auditable claim count while recipients prove eligibility
+locally with private data. The Level 1 contract demonstrates the core privacy
+boundary with one eligible recipient. Later levels will replace the single
+commitment with an eligibility Merkle root and campaign-scoped nullifier set so
+many recipients can claim once without revealing which approved record belongs
+to them.
+
+## Level 1 behavior
+
+The Compact contract:
+
+1. Generates a high-entropy 32-byte eligibility secret in the DApp.
+2. Keeps that secret in the encrypted Midnight private-state provider.
+3. Publishes only a domain-separated commitment during deployment.
+4. Reads the secret through the `eligibilitySecret()` witness when claiming.
+5. Proves that the private secret matches the public commitment.
+6. Uses `disclose()` only for the derived commitment and claim nullifier.
+7. Records a public claim counter, one-time flag, and derived claim marker.
+8. Rejects another claim after the one-time eligibility has been used.
+
+## Public state and private witness
+
+| Data | Location | Reason |
+|---|---|---|
+| Eligibility secret | Encrypted local private state | This is the recipient's private evidence and must never appear on-chain. |
+| Eligibility commitment | Public ledger | Anyone can verify which commitment the campaign accepts without learning its preimage. |
+| Successful claim count | Public ledger | Organizers and donors can audit distribution progress. |
+| Claim recorded flag | Public ledger | The Level 1 campaign accepts its single eligibility only once. |
+| Last claim nullifier | Public ledger | A domain-separated marker proves a claim was recorded without revealing the secret. |
+
+The disclosure boundary is visible in
+[`contracts/veil-aid.compact`](contracts/veil-aid.compact): the raw witness is
+never disclosed, returned, logged, or placed in ledger state. The circuit
+discloses only outputs of domain-separated persistent hashes.
+
+## Requirements
+
+- Node.js 22 or newer
+- Docker with Compose v2
+- Compact devtools 0.5.2
+- Compact compiler 0.31.1
+
+Verify the local tools:
 
 ```bash
+node --version
+docker --version
+docker compose version
+compact --version
+compact compile --version
+```
+
+Install Compact using Midnight's
+[official installation guide](https://docs.midnight.network/getting-started/installation).
+
+## Install and test
+
+```bash
+git clone git@Yilkash:Yilkash/veil-aid.git
+cd veil-aid
 npm install
+npm dedupe
+npm test
+npm run build
+```
+
+`npm test` compiles the Compact source into `contracts/managed/veil-aid/`
+and runs the privacy-primitive test suite. The generated directory contains the
+contract TypeScript/JavaScript bindings, ZKIR, and prover/verifier keys.
+
+The `overrides` entry in `package.json` pins
+`@midnight-ntwrk/onchain-runtime-v3` to the version required by Midnight.js
+4.1.1. Keep `npm dedupe` in setup so Compact Runtime and Midnight.js share one
+`StateValue` class instance.
+
+## Run on the bundled local devnet
+
+```bash
 npm run setup
+npm run cli
+```
+
+`npm run setup` starts the node, indexer, and proof server, compiles the
+contract, deploys it, and writes the local address to the gitignored
+`.midnight-state.json`. In the CLI:
+
+- choose **1** to submit the private eligibility proof;
+- choose **2** to read the public claim state;
+- choose **1** again to verify that the duplicate claim is rejected.
+
+Run the deployed-contract smoke test:
+
+```bash
 npm run test:e2e
 ```
 
-`npm run setup` runs end-to-end with no prompts:
-
-1. `docker compose up -d --wait` — starts a local Midnight devnet (node, indexer, proof-server) and blocks until all three pass their healthchecks.
-2. `npm run compile` — compiles `contracts/hello-world.compact` to `contracts/managed/hello-world/`.
-3. `npm run deploy` — derives the genesis-seed wallet (NIGHT pre-minted), registers UTXOs for DUST generation, deploys the contract, writes `.midnight-state.json`.
-
-`npm run test:e2e` reconnects to the deployed contract and reads its ledger state. Exits 0 if the contract is live and indexable.
-
-## Local devnet
-
-The project ships its own devnet via `docker-compose.yml`:
-
-| Service        | Port | Purpose                                         |
-| -------------- | ---- | ----------------------------------------------- |
-| `node`         | 9944 | Midnight node, `dev` chain preset               |
-| `indexer`      | 8088 | GraphQL indexer for chain state                 |
-| `proof-server` | 6300 | Generates ZK proofs for contract transactions   |
-
-State lives in container-managed volumes. Tear everything down with:
+Reset generated state when needed:
 
 ```bash
+npm run clean
 docker compose down -v
 ```
 
-That removes all containers, networks, and volumes. The next `npm run setup` starts from a clean slate.
+## Deploy to Preview
 
-## ⚠️ LOCAL DEVNET ONLY
-
-The deploy script uses a well-known genesis seed (`0000…0001`) so the
-pre-minted NIGHT in the `dev` chain preset is immediately available. **Do
-not use this seed against Preprod, mainnet, or any environment that
-handles real value** — anyone running this devnet has full access to
-funds at this seed.
-
-## Networks
-
-This DApp supports three networks:
-
-| Network | When to use | Default? |
-|---|---|---|
-| `undeployed` | Local devnet bundled in `docker-compose.yml`. Genesis seed is hardcoded; no funding needed. | yes |
-| `preview` | Public preview testnet. Faucet at `https://midnight-tmnight-preview.nethermind.dev`. |  |
-| `preprod` | Public preprod testnet. Faucet at `https://midnight-tmnight-preprod.nethermind.dev`. |  |
-
-The active network is **sticky**: whichever network you last interacted
-with stays active until you switch. Any command run with `--network <name>`
-also sets that network active for subsequent commands. The default on a
-fresh project is `undeployed` (local devnet).
-
-```sh
-npm run setup -- --network preview   # runs on preview AND makes it active
-npm run cli                          # still uses preview
-npm run check-balance                # still uses preview
-```
-
-You can also switch without running anything else:
-
-```sh
-npm run network preview         # active network is now preview
-npm run network                 # prints current active network
-npm run network undeployed      # switch back to local devnet
-```
-
-### How wallets work across networks
-
-- `undeployed` uses a hardcoded genesis seed. Local devnet pre-funds it.
-- `preview` and `preprod` generate a fresh wallet on first use: a 24-word
-  BIP-39 recovery phrase (printed once) plus its derived seed, both stored
-  in `.midnight-state.json` (gitignored). The wallet survives switching
-  networks — switch back later and your funded wallet returns.
-- **Back up your recovery phrase** if you fund a public-network wallet you
-  care about. It is printed when the wallet is created and kept in
-  `.midnight-state.json` under `wallets.<network>.mnemonic`. Anyone holding
-  the phrase controls the wallet.
-- Wallets created before mnemonic support keep working from their stored
-  `seed`; they just have no phrase to import into Lace.
-
-### Using the same wallet as Lace
-
-Seeds are derived with the standard BIP-39 `mnemonicToSeed` step — the same
-convention Lace uses — so identity is portable in both directions:
-
-- **Bring your Lace wallet here**: pass your recovery phrase via the
-  `MIDNIGHT_WALLET_MNEMONIC` env var — the derived addresses match Lace.
-  To keep the phrase out of your shell history, enter it with a hidden
-  prompt instead of typing it inline:
-
-  ```bash
-  read -s MIDNIGHT_WALLET_MNEMONIC && export MIDNIGHT_WALLET_MNEMONIC
-  npm run deploy
-  ```
-- **Take a scaffold wallet to Lace**: restore Lace from the 24-word phrase
-  in `.midnight-state.json`.
-
-### Funding a public-network wallet
-
-On the first run with `--network preview` (or `preprod`):
-
-1. `setup` will print your wallet address and the faucet URL.
-2. Open the faucet URL, paste the address, request tNIGHT.
-3. `setup` polls the wallet balance every 10 s and continues automatically
-   once funds arrive.
-4. The default poll budget is 10 minutes. Override with
-   `MIDNIGHT_FAUCET_TIMEOUT_MS=1800000` (30 min) for unattended runs.
-
-If the faucet is slow or the script times out, your seed is preserved.
-Re-run `npm run setup -- --network preview` once the funds land.
-
-### Environment overrides
-
-These env vars override the active network's config (no per-network
-suffix — they apply to whichever network is active for the run):
-
-| Variable | Effect |
-|---|---|
-| `MIDNIGHT_WALLET_SEED` | Use this hex seed (32-128 hex chars; a Lace-compatible BIP-39 seed is 128) instead of generating/persisting one. Useful for CI with a pre-funded wallet. |
-| `MIDNIGHT_WALLET_MNEMONIC` | Use this BIP-39 recovery phrase instead of generating a wallet — e.g. your Lace phrase, for the same addresses as Lace. Not persisted. Set only one of seed/mnemonic. |
-| `MIDNIGHT_INDEXER_URL` | Override the indexer GraphQL URL. |
-| `MIDNIGHT_INDEXER_WS_URL` | Override the indexer WS URL. |
-| `MIDNIGHT_NODE_URL` | Override the node RPC URL. |
-| `MIDNIGHT_FAUCET_URL` | Override the faucet URL printed during setup. |
-| `MIDNIGHT_PROOF_SERVER_URL` | Override the proof server URL — set to a public proof server (e.g. `https://lace-proof-pub.preview.midnight.network`) to skip running one locally. |
-| `MIDNIGHT_FAUCET_TIMEOUT_MS` | Faucet poll budget in milliseconds (default 600000 = 10 min). |
-
-By default all networks use the **local** proof server. Public proof
-servers exist (see the env override above) but the local default keeps
-your witness data on your machine and avoids depending on a remote
-service for the deploy hot path.
-
-### Switching back to local devnet
-
-```sh
-npm run network undeployed     # or: npm run setup -- --network undeployed
-```
-
-Your preview/preprod wallet seeds and deploy addresses stay in
-`.midnight-state.json`. Switch back later, and they're still there.
-
-### Wallet sync cache
-
-After each `deploy`, `cli`, or `check-balance` run, the scripts serialize the
-wallet's synced state to `.midnight-wallet-state/<network>/` (gitignored).
-The next run on the same network restores from that snapshot and only catches
-up to the latest block instead of replaying from genesis — meaningful on
-`preview` / `preprod` where a from-seed sync takes minutes.
-
-If the cache is stale or corrupt (e.g. after an SDK upgrade with an
-incompatible state format) the wallet falls back to a fresh from-seed sync
-with a one-line warning. `npm run clean` removes the cache along with other
-generated state.
-
-## Available scripts
-
-| Script                  | Description                                                    |
-| ----------------------- | -------------------------------------------------------------- |
-| `npm run setup`         | One-shot: start devnet, compile, deploy.                       |
-| `npm run compile`       | Compile the Compact contract.                                  |
-| `npm run deploy`        | Deploy the compiled contract (requires devnet up + compiled).  |
-| `npm run cli`           | Interactive CLI to call circuits on the deployed contract.     |
-| `npm run check-balance` | Print the genesis-seed wallet's NIGHT and DUST balances.       |
-| `npm run test:e2e`      | Smoke + read-back check against the deployed contract.         |
-| `npm run clean`         | Remove `contracts/managed/`, `.midnight-state.json`, and `.midnight-wallet-state/`. |
-| `npm run proof-server:start` / `:stop` | Compose lifecycle for just the proof-server service. |
-
-## Project structure
-
-```
-veil-aid/
-├── contracts/
-│   └── hello-world.compact     # Compact source
-├── scripts/
-│   └── e2e-check.ts            # smoke + read-back
-├── src/
-│   ├── network.ts              # network selection + state file management
-│   ├── wallet.ts               # wallet construction + sync-state cache
-│   ├── setup.ts                # orchestrator for `npm run setup`
-│   ├── deploy.ts               # deploy the contract
-│   ├── cli.ts                  # interact with deployed contract
-│   └── check-balance.ts        # NIGHT / DUST balance
-├── docker-compose.yml          # node + indexer + proof-server
-├── .midnight-state.json        # written by deploy (gitignored)
-├── .midnight-wallet-state/     # serialized sync state per network (gitignored)
-├── package.json
-└── tsconfig.json
-```
-
-## Compact compiler version
-
-`.compact-version` at the create-mn-app repo root pinned the compiler
-version this project was scaffolded against. To upgrade your local
-compiler to that version:
+Start the proof server and create a Preview wallet:
 
 ```bash
-compact update <version>
-compact use <version>
+npm run proof-server:start
+npm run setup -- --network preview
 ```
+
+On the first Preview run, the script prints a wallet address and faucet URL,
+then waits for test NIGHT. Fund that address through the faucet. The setup
+continues automatically, deploys the contract, prints the public contract
+address, and stores it in the gitignored state file.
+
+Never commit `.midnight-state.json`, `.midnight-wallet-state/`, or
+`midnight-level-db/`. They contain wallet or private application state.
+
+## Verified local result
+
+- Compact compile: passed
+- Unit tests: 4 passed
+- TypeScript build: passed
+- Local node, indexer, and proof server: healthy
+- Local deployment:
+  `6dfeaa2c43773464d1f0caffa6018e2cabf782a6841ca0081e40efa2bf2da34e`
+- First private claim: succeeded at block 196
+- Public successful claim count: 1
+- Duplicate claim: rejected by
+  `This campaign eligibility has already claimed`
+- End-to-end deployed-state check: passed
+
+The local address is development evidence. The Rise In submission must use the
+Preview or Preprod address produced by the public-network deployment.
+
+## Level 1 submission checklist
+
+- [x] Node, Docker, Compact compiler, and proof-server setup
+- [x] Compact contract with public ledger state and a private witness
+- [x] Deliberate `disclose()` boundary
+- [x] Contract compiles and generates circuit plus keys
+- [x] Passing test suite
+- [x] Local deployment and end-to-end state read
+- [x] Product idea paragraph
+- [x] Setup and architecture documentation
+- [ ] Deploy to Preview or Preprod
+- [ ] Add compile-output screenshot to `docs/evidence/`
+- [ ] Add public deployment-address screenshot to `docs/evidence/`
+- [ ] Publish the GitHub repository under Yilkash
+- [ ] Reach five meaningful commits
+
+## Roadmap
+
+The implementation plan for the full challenge is in
+[`docs/VEILAID_BUILD_PLAYBOOK.md`](docs/VEILAID_BUILD_PLAYBOOK.md).
+The next protocol milestone adds organizer authorization, an eligibility Merkle
+root, campaign-scoped nullifiers for many recipients, and a web interface that
+shows exactly what stays private before proof generation.
+
+## Useful commands
+
+| Command | Purpose |
+|---|---|
+| `npm run compile` | Compile Compact and generate managed ZK artifacts |
+| `npm test` | Compile and run unit tests |
+| `npm run build` | Type-check TypeScript |
+| `npm run setup` | Start local devnet, compile, and deploy |
+| `npm run cli` | Claim or inspect public campaign state |
+| `npm run test:e2e` | Verify the deployed contract is indexed and readable |
+| `npm run network preview` | Select Preview as the active network |
+| `npm run clean` | Remove generated contract, wallet cache, and private state |
+
+## License
+
+MIT
