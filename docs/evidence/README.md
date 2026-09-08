@@ -1,11 +1,15 @@
 # Level 1 evidence
 
-Add the two required screenshots here after the public Preview deployment.
+This directory contains the two screenshots required for the Level 1
+submission.
 
 Verified Preview contract address:
 `f19931af3c381275ef72c4e6a28e50613b6f55139387d280744b38753376579d`.
 
 ## 1. Compile output
+
+[`01-compact-compile.png`](01-compact-compile.png) shows Compact successfully
+compiling the `claimAid` circuit.
 
 Run:
 
@@ -17,6 +21,10 @@ Capture the successful output showing `Compiling 1 circuits:`. Name the
 sanitized image `01-compact-compile.png`.
 
 ## 2. Preview deployment
+
+[`02-preview-contract-address.png`](02-preview-contract-address.png) shows the
+passing Preview end-to-end check, public contract address, network, and initial
+claim count.
 
 Run:
 

@@ -170,8 +170,8 @@ read-back check on September 8, 2026.
 - [x] Product idea paragraph
 - [x] Setup and architecture documentation
 - [x] Deploy to Preview or Preprod
-- [ ] Add compile-output screenshot to `docs/evidence/`
-- [ ] Add public deployment-address screenshot to `docs/evidence/`
+- [x] Add compile-output screenshot to `docs/evidence/`
+- [x] Add public deployment-address screenshot to `docs/evidence/`
 - [x] Publish the GitHub repository under Yilkash
 - [x] Reach five meaningful commits
 
