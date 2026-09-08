@@ -10,6 +10,7 @@ const targets = [
   "contracts/managed",
   ".midnight-state.json",
   ".midnight-wallet-state",
+  "midnight-level-db",
 ];
 
 let failed = false;
