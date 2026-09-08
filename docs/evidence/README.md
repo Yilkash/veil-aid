@@ -2,6 +2,9 @@
 
 Add the two required screenshots here after the public Preview deployment.
 
+Verified Preview contract address:
+`f19931af3c381275ef72c4e6a28e50613b6f55139387d280744b38753376579d`.
+
 ## 1. Compile output
 
 Run:

@@ -149,6 +149,16 @@ Never commit `.midnight-state.json`, `.midnight-wallet-state/`, or
 The local address is development evidence. The Rise In submission must use the
 Preview or Preprod address produced by the public-network deployment.
 
+## Preview deployment
+
+| Network | Contract address | Status |
+|---|---|---|
+| Preview | `f19931af3c381275ef72c4e6a28e50613b6f55139387d280744b38753376579d` | Deployed and verified by `npm run test:e2e` |
+
+The Preview wallet synchronized with a faucet-funded balance, registered NIGHT
+for DUST generation, deployed the contract, and passed the indexed state
+read-back check on September 8, 2026.
+
 ## Level 1 submission checklist
 
 - [x] Node, Docker, Compact compiler, and proof-server setup
@@ -159,11 +169,11 @@ Preview or Preprod address produced by the public-network deployment.
 - [x] Local deployment and end-to-end state read
 - [x] Product idea paragraph
 - [x] Setup and architecture documentation
-- [ ] Deploy to Preview or Preprod
+- [x] Deploy to Preview or Preprod
 - [ ] Add compile-output screenshot to `docs/evidence/`
 - [ ] Add public deployment-address screenshot to `docs/evidence/`
-- [ ] Publish the GitHub repository under Yilkash
-- [ ] Reach five meaningful commits
+- [x] Publish the GitHub repository under Yilkash
+- [x] Reach five meaningful commits
 
 ## Roadmap
 
