@@ -1,0 +1,8 @@
+{
+  "version": 3,
+  "file": "index.js",
+  "sourceRoot": "../../../../",
+  "sources": ["contracts/veil-aid.compact", "compiler/standard-library.compact"],
+  "names": [],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAgBA;;;;;;;;;;;;;MAKA,AAAA,2BAKC;;OAAA;MAED,AAAA,oBAKC;;OAAA;MAED,AAAA,QAeC;;;;;;;;;;;;;;;;;;;;;;OAAA;;;;GA/BA;EAHD;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IATA;;;;;;;;;yEAA+C;IAC/C;;;;;;;;;yEAAwC;IACxC;;;;;;;;;yEAA4C;IAC5C;;;;;;;;;yEAAqC;UAO7B,QAA4B;UAClC,KAAqB,uCAAwC,QAAM;IAAnE;;;;;;;2HAAA,KAAqB;;yEAAA;;;;;;;GACtB;ECnBD,AAAA,kBAAA;oEAAA;;;EDcA,AAAA,oBAAuC;;0DAAvC,iBAAuC;;;;;;;;;;;;;;GAAA;EAOvC,AAAA,8BAKC,CAL+C,QAAiB;;mCAG7D,QAAM;GAET;EAED,AAAA,uBAKC,CALwC,QAAiB;;mCAGtD,QAAM;GAET;EAED,AAAA,WAeC;UAdO,QAA4B;UAC5B,qBAAmE,uCAAR,QAAM;0CAErE,qBAAmB;kEAAI;;;;;;;;;;;uIAAqB;;UAIxC,WAAkD,gCAAR,QAAM;qDAC9C;;;;;;;;;;;0HAAa;;IAErB;;;;;;;2HAAqB,WAAS;;yEAAZ;IAClB;;;;;;;;;yEAAa;UACb,KAAgB;IAAhB;;;;;;;;;;6FAAA,KAAgB;;;;wEAAA;WACT,WAAS;GACjB;;;;;;;;;;;;;;;;;;;;IA3CD;qCAAA;;;;;;;;;;;0GAA+C;KAAA;IAC/C;qCAAA;;;;;;;;;;;0GAAwC;KAAA;IACxC;qCAAA;;;;;;;;;;;0GAA4C;KAAA;IAC5C;qCAAA;;;;;;;;;;;0GAAqC;KAAA;;;;;;;;;;EAWrC,AAAA,2BAKC;;;;UAL+C,QAAiB;;;;;;;;yDAAjB,QAAiB;GAKhE;EAED,AAAA,oBAKC;;;;UALwC,QAAiB;;;;;;;;kDAAjB,QAAiB;GAKzD;;;;"
+}

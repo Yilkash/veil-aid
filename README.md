@@ -189,8 +189,10 @@ vercel
 vercel --prod
 ```
 
-The production build command is `npm run compile && npm run build:web`; output
-is served from `dist/`, including the `claimAid` proving key and ZKIR.
+The production build command is `npm run build:web`; output is served from
+`dist/`, including the committed `claimAid` proving key and ZKIR. The generated
+artifacts are committed because the standalone Compact compiler is unavailable
+on Vercel's clean build machines.
 
 ## Demo Video
 
