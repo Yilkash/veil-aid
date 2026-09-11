@@ -15,6 +15,15 @@
     "declarationMap": true,
     "sourceMap": true
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/check-balance.ts",
+    "src/cli.ts",
+    "src/contract.ts",
+    "src/deploy.ts",
+    "src/network.ts",
+    "src/setup.ts",
+    "src/wallet-state.ts",
+    "src/wallet.ts"
+  ],
   "exclude": ["node_modules", "dist", "contracts/managed"]
 }

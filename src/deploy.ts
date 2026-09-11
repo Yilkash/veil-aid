@@ -12,6 +12,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { WebSocket } from 'ws';
 import * as Rx from 'rxjs';
 import { randomBytes } from 'node:crypto';
+import { Buffer } from 'node:buffer';
 import {
   createCompiledContract,
   createVeilAidPrivateState,
@@ -390,6 +391,23 @@ async function main() {
 
   const contractAddress = deployed.deployTxData.public.contractAddress;
 
+  // Write a recipient credential for the browser flow. It contains the raw
+  // witness secret, so it lives in a gitignored owner-only directory and must
+  // never be shared publicly or attached to a submission.
+  const credentialDirectory = path.resolve(process.cwd(), '.veil-aid-private');
+  const credentialPath = path.join(credentialDirectory, `eligibility-${network}.json`);
+  fs.mkdirSync(credentialDirectory, { recursive: true, mode: 0o700 });
+  fs.writeFileSync(
+    credentialPath,
+    `${JSON.stringify({
+      version: 1,
+      network,
+      contractAddress,
+      eligibilitySecret: Buffer.from(eligibilitySecret).toString('hex'),
+    }, null, 2)}\n`,
+    { mode: 0o600 },
+  );
+
   // Persist explicitly under the finalized contract address. This mirrors the
   // provider pattern used by Midnight's official examples and ensures a later
   // CLI process recovers the same witness secret.
@@ -403,6 +421,8 @@ async function main() {
 
   console.log('  ✅ Contract deployed successfully!\n');
   console.log(`  Contract Address: ${contractAddress}\n`);
+  console.log(`  Private browser credential: ${credentialPath}`);
+  console.log('  Keep this file private. Do not commit or upload it.\n');
 
   recordDeployment(network, contractAddress, address.toString());
   console.log('  Saved to .midnight-state.json\n');

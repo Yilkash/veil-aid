@@ -49,6 +49,7 @@ coverage/
 # Private state
 *-state/
 midnight-level-db/
+.veil-aid-private/
 
 # Temporary files
 tmp/
