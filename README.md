@@ -9,8 +9,10 @@ claim count and the contract rejects a second use of the same eligibility.
 
 ## Live Demo
 
-**Deployment pending:** the production URL will be added here after the Vercel
-deployment is verified with Lace.
+**Production:** [veil-aid-taupe.vercel.app](https://veil-aid-taupe.vercel.app/)
+
+The deployed app targets Midnight Preprod and loads the public proving key and
+ZKIR directly in the browser for Lace-backed proof generation.
 
 ## Contract Address
 
@@ -223,7 +225,7 @@ See [`docs/LEVEL2_DEMO.md`](docs/LEVEL2_DEMO.md) for the timed narration.
 - [x] Privacy Claim section
 - [x] Vercel deployment configuration
 - [x] Preprod contract deployed and address inserted above
-- [ ] Live URL inserted above
+- [x] Live URL inserted above
 - [ ] Demo video recorded and linked above
 - [x] At least eight meaningful Level 2 commits
 - [ ] GitHub repository and live link submitted on Rise In
