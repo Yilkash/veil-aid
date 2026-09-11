@@ -9,18 +9,18 @@ claim count and the contract rejects a second use of the same eligibility.
 
 ## Live Demo
 
-**Deployment pending:** the production URL will be added here after the Preprod
-contract is connected and the Vercel deployment is verified with Lace.
+**Deployment pending:** the production URL will be added here after the Vercel
+deployment is verified with Lace.
 
 ## Contract Address
 
 | Network | Contract address | Status |
 |---|---|---|
-| Preprod | `PENDING_PREPROD_DEPLOYMENT` | Deployment in progress |
+| Preprod | `04e2889286833bf93deecdc8cdf6ec0ceaf996e6af69f71c3cf8fb597ed90079` | Deployed and verified |
 | Preview | `f19931af3c381275ef72c4e6a28e50613b6f55139387d280744b38753376579d` | Level 1 deployment, verified |
 
-The Level 2 frontend targets **Preprod**. Set `VITE_CONTRACT_ADDRESS` to the
-Preprod address before running or deploying the browser app.
+The Level 2 frontend targets **Preprod** and uses the deployed address above by
+default. You can override it with `VITE_CONTRACT_ADDRESS` for another campaign.
 
 ## What This Does
 
@@ -131,7 +131,7 @@ Create `.env.local` without committing it:
 
 ```bash
 VITE_NETWORK_ID=preprod
-VITE_CONTRACT_ADDRESS=PASTE_PREPROD_CONTRACT_ADDRESS
+VITE_CONTRACT_ADDRESS=04e2889286833bf93deecdc8cdf6ec0ceaf996e6af69f71c3cf8fb597ed90079
 ```
 
 Start the app:
@@ -220,7 +220,7 @@ See [`docs/LEVEL2_DEMO.md`](docs/LEVEL2_DEMO.md) for the timed narration.
 - [x] Loading state and public transaction result
 - [x] Privacy Claim section
 - [x] Vercel deployment configuration
-- [ ] Preprod contract deployed and address inserted above
+- [x] Preprod contract deployed and address inserted above
 - [ ] Live URL inserted above
 - [ ] Demo video recorded and linked above
 - [x] At least eight meaningful Level 2 commits
