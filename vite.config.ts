@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import wasm from 'vite-plugin-wasm';
+import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
   plugins: [
@@ -28,6 +29,10 @@ export default defineConfig({
     ],
   },
   resolve: {
+    alias: {
+      assert: 'assert/',
+      'isomorphic-ws': fileURLToPath(new URL('./src/lib/browserWebSocket.ts', import.meta.url)),
+    },
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.wasm'],
     mainFields: ['browser', 'module', 'main'],
   },
