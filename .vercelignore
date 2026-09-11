@@ -1,0 +1,17 @@
+.git/
+.github/
+.veil-aid-private/
+.midnight-state.json
+.midnight-wallet-state/
+*-state/
+midnight-level-db/
+.env
+.env.local
+.env.*.local
+*.log
+*.seed
+coverage/
+docs/
+test/
+tmp/
+temp/
